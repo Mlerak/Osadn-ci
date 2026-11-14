@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="cs"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Osadníci – multiplayer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;min-height:100dvh;color:#1d2b36;font:600 16px/1.35 Nunito,'Segoe UI',Arial,sans-serif;background-attachment:fixed;transition:background .8s}
+body.s0{background:linear-gradient(160deg,#aef0b8,#58cfa5 55%,#2fa8d5)}
+body.s1{background:linear-gradient(170deg,#4ec3f7,#8fe0ff 45%,#ffe08a)}
+body.s2{background:linear-gradient(160deg,#ffcf8a,#e8812f 55%,#8c3d1b)}
+body.s3{background:linear-gradient(160deg,#eaf7ff,#9bcdf0 55%,#4a77b8)}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+#fx i{position:absolute;top:-8%;opacity:.75;font-style:normal;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(118vh) rotate(360deg)}}
+@keyframes pulse{50%{opacity:.4}}@keyframes pop{from{transform:scale(.7);opacity:0}}
+.pulse,.hx{animation:pulse 1s infinite}
+@media (prefers-reduced-motion:reduce){#fx{display:none}.pulse,.hx,.toast.new{animation:none}.die.tumble{animation:none;opacity:.6}}
+button,select,input{font:inherit;color:#1d2b36;border:0;border-radius:14px;padding:10px 14px;background:#fff;box-shadow:0 3px 0 #0003;cursor:pointer;font-weight:700}
+input{box-shadow:inset 0 2px 0 #0002,0 0 0 2px #cfd8dc;cursor:text}
+button:focus-visible,select:focus-visible,input:focus-visible,.hot:focus-visible{outline:3px solid #ffd43b;outline-offset:2px}
+button:disabled{opacity:.4;box-shadow:none;cursor:default}button.sel{outline:3px solid #ffd43b}
+.go{background:linear-gradient(#5ee07a,#2fbf56);color:#fff;text-shadow:0 1px 0 #0003}.big{font-size:20px;padding:14px 22px}
+.dim{color:#5a6b78;font-weight:600}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+#menu{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px;position:relative;z-index:1}
+.card{background:#ffffffee;border-radius:26px;padding:24px;max-width:420px;width:100%;box-shadow:0 8px 0 #0002}
+.card h1{font-size:36px;margin:0 0 12px;text-align:center}.card hr{border:0;border-top:2px dashed #cfd8dc;margin:14px 0}
+.code{font-size:46px;letter-spacing:.3em;text-align:center;font-weight:700}
+.pl{display:flex;align-items:center;padding:8px 12px;border-radius:12px;background:#f1f5f7;margin:6px 0;border-left:10px solid}
+#game{display:flex;flex-direction:column;height:100dvh;position:relative;z-index:1;padding-top:env(safe-area-inset-top,0px)}
+#top{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:8px 12px}#top #turn{justify-self:start}
+#turn{background:#fff;border-radius:999px;padding:7px 16px;font-size:18px;font-weight:700;box-shadow:0 3px 0 #0003;display:flex;align-items:center;gap:8px}
+#turn small{font-weight:600;color:#5a6b78}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #0003;flex:none}
+#season{background:#ffffffd9;border-radius:999px;padding:6px 14px;font-size:15px;box-shadow:0 3px 0 #0002}
+#stage{flex:1;min-height:0;position:relative}#b{width:100%;height:100%}
+#feed{position:absolute;top:4px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:3;width:max-content;max-width:94%}
+.toast{background:#1d2b36d9;color:#fff;padding:4px 14px;border-radius:999px;font-size:14px;opacity:.6}.toast.new{opacity:1;font-size:17px;animation:pop .35s}
+#msg{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);color:#b3261e;background:#fff;border-radius:10px;padding:0 8px}
+.hot{cursor:pointer}
+#dock{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#ffffffc4;backdrop-filter:blur(8px);border-top:3px solid #fff}
+#hand{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:76px;align-items:center}
+.rc{width:54px;height:74px;border-radius:10px;background:repeating-linear-gradient(135deg,#ffffff26 0 3px,transparent 3px 7px),linear-gradient(160deg,color-mix(in srgb,var(--c) 65%,#fff),var(--c));border:3px solid #fff;box-shadow:0 3px 0 #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#1d2b36}
+.rc .ri{font-size:26px;line-height:1}.rc small{font-size:10px;font-weight:600}
+#ac{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.ab{display:flex;flex-direction:column;align-items:center;min-width:66px;font-size:12px;padding:6px 10px}.ab span{font-size:24px;line-height:1.1}
+.dice{display:flex;gap:6px}.die{font-size:54px;line-height:1;display:inline-block;user-select:none}
+.die.tumble{animation:tumble .45s linear infinite}.die.tumble:nth-child(2){animation-direction:reverse;animation-duration:.55s}
+@keyframes tumble{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(6px,-14px) rotate(100deg)}50%{transform:translate(-5px,0) rotate(200deg)}75%{transform:translate(5px,-9px) rotate(290deg)}100%{transform:translate(0,0) rotate(360deg)}}
+#modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:10;padding:12px}
+.mbox{background:#fff;border-radius:22px;padding:20px;max-width:94vw;max-height:88dvh;overflow:auto;min-width:270px;box-shadow:0 8px 0 #0003}
+.mbox h2{margin:0 0 8px;font-size:22px}.drow{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:18px}
+.drow b{min-width:1.5em;text-align:center}.cost{border-collapse:collapse;margin:6px 0;font-size:16px}.cost td{padding:4px 10px;border-top:1px solid #e3e8eb}
+.i{width:1.15em;height:1.15em;vertical-align:-.22em;flex:none}.rc .ri .i{width:32px;height:32px}
+svg{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(#ffffff55 1.2px,transparent 1.7px) 0 0/22px 22px;opacity:.5}
+.rc{outline:1.5px solid #0003}
+#sbox{text-align:center}
+#sname{font-size:clamp(30px,5.2vw,52px);font-weight:900;letter-spacing:.08em;line-height:1;color:#fff;-webkit-text-stroke:2px #1d2b36;paint-order:stroke fill;text-shadow:0 4px 0 #1d2b3655}
+#season{display:inline-block;margin-top:4px}
+@media (max-width:760px){#top{grid-template-columns:1fr auto}#sbox{grid-column:1/-1;order:-1}}
+.ring{fill:none;stroke-width:4;animation:ring .9s ease-out both;animation-delay:var(--d)}
+.ring.r2{stroke-width:2.5;animation-delay:calc(var(--d) + .12s)}
+@keyframes ring{from{transform:scale(.3);opacity:1}to{transform:scale(3.4);opacity:0}}
+.sp{animation:spark .9s ease-out both;animation-delay:var(--d)}
+@keyframes spark{from{transform:rotate(var(--a)) translateX(6px) scale(1);opacity:1}to{transform:rotate(var(--a)) translateX(42px) scale(.2);opacity:0}}
+.pop{transform-box:fill-box;transform-origin:50% 100%;animation:pop2 .75s cubic-bezier(.2,1.6,.4,1) both;animation-delay:var(--d)}
+@keyframes pop2{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.draw{stroke-dasharray:50;animation:draw .6s ease-out both;animation-delay:var(--d)}
+@keyframes draw{from{stroke-dashoffset:50}to{stroke-dashoffset:0}}
+#banner{position:absolute;top:72px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:none;opacity:0;background:#fff;border-radius:999px;padding:8px 22px;font-size:22px;font-weight:800;box-shadow:0 5px 0 #0003;display:flex;gap:10px;align-items:center;white-space:nowrap}
+#banner.show{animation:bnr 2.2s ease-out both}
+@keyframes bnr{0%{opacity:0;transform:translate(-50%,-30px) scale(.6)}12%{opacity:1;transform:translate(-50%,0) scale(1.08)}20%{transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-10px)}}
+@media (prefers-reduced-motion:reduce){.ring,.sp,.pop,.draw,#banner.show{animation:none}}
+</style></head><body class="s0">
+<div id="fx"></div>
+<div id="menu"><div class="card" id="mc">Načítám…</div></div>
+<div id="game" hidden>
+<header id="top"><div id="turn"></div><div id="sbox"><div id="sname"></div><div id="season"></div></div><div class="row" style="margin:0;justify-self:end"><button id="mute" onclick="toggleMute()" aria-label="Zvuk">🔊</button><button onclick="showCosts=true;render()" aria-label="Ceny a období">💰</button></div></header>
+<div id="stage"><svg id="b" viewBox="-300 -235 600 470" role="img" aria-label="Herní plán"></svg><div id="feed" aria-live="polite"></div><div id="banner"></div><div id="msg"></div></div>
+<footer id="dock"><div id="hand"></div><div id="ac"></div></footer>
+<div id="modal" hidden onclick="closeM()"></div>
+</div>
+<script>
+const S=46,R=['wood','brick','sheep','wheat','ore'];
+const CZ={wood:'dřevo',brick:'cihla',sheep:'zvěř',wheat:'obilí',ore:'ruda',desert:'poušť'};
+const COL={wood:'#4a7c3f',brick:'#b4532e',sheep:'#a6d46f',wheat:'#e4c453',ore:'#8b929c',desert:'#dccfa6'};
+const PC=['#d6342c','#2f6fd0','#f08a1c','#2f9e5b'],SEAT=[[-300,150],[-300,-220],[190,-220],[190,150]];
+const COST={road:{wood:1,brick:1},settle:{wood:1,brick:1,sheep:1,wheat:1},city:{ore:3,wheat:2}};
+let dstate={f:[1,2],rot:[0,0],dy:[0,0]},lastFx=null,lastSeasonSeen=null,wasMine=false,wasOver=false,fxT=0,AC=null,muted=localStorage.getItem('mute')=='1',showCosts=false,showBank=false,fxSeason=-1,db,me,G,H,V,E,code,botT=null,lastRid=0,rolling=false,anim=false,mode=null,tg={give:'wood',get:'ore'},myName='',wantN=4,err='',unsub=null;
+const $=id=>document.getElementById(id),rep=(t,n)=>Array(n).fill(t),face=n=>String.fromCodePoint(0x267F+n);
+const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const vo=v=>G.vo[v.i]??-1,eo=e=>G.eo[e.i]??-1,eOf=v=>E.filter(e=>e.a==v||e.b==v);
+const cp=()=>G.P[G.cur],pts=i=>G.P[i].s+2*G.P[i].c,nm=i=>G.P[i].name;
+const mine=()=>G.phase!='over'&&G.phase!='lobby'&&cp().uid==me;
+const afford=(p,k)=>Object.entries(COST[k]).every(([r,n])=>G.P[p].res[r]>=n);
+const pay=(p,k)=>{for(const[r,n]of Object.entries(COST[k]))G.P[p].res[r]-=n};
+const ord=()=>{const a=[...Array(G.N).keys()];return[...a,...a.reverse()]};
+const SEAS=[{n:'Jaro',e:'🌱',up:['sheep','wood'],down:['ore']},{n:'Léto',e:'☀️',up:['wheat','sheep'],down:['brick']},{n:'Podzim',e:'🍂',up:['brick','wheat'],down:['wood']},{n:'Zima',e:'❄️',up:['ore','brick'],down:['sheep']}];
+const adj=(t,k)=>{const q=SEAS[G.season||0];return q.down.includes(t)?0:q.up.includes(t)?k+1:k};
+const pip=v=>v.hs.reduce((a,h)=>a+(h.n?6-Math.abs(7-h.n):0),0);
+const cards=p=>R.reduce((a,r)=>a+p.res[r],0);
+const LOCAL=location.protocol=='file:'||/[?&]local/.test(location.search),st=LOCAL?sessionStorage:localStorage,ls={};
+me=st.getItem('uid')||(Math.random().toString(36).slice(2)+Date.now().toString(36));try{st.setItem('uid',me)}catch(e){}
+addEventListener('storage',e=>{if(e.key&&e.key.startsWith('g:'))(ls[e.key.slice(2)]||[]).forEach(f=>f())});
+db=LOCAL?{doc:p=>{const rd=()=>{const v=localStorage.getItem('g:'+p);return v?JSON.parse(v):null};return{
+ set:async d=>{localStorage.setItem('g:'+p,JSON.stringify(d));(ls[p]||[]).forEach(f=>f())},
+ get:async()=>{const d=rd();return d?{exists:true,data:()=>d}:{exists:false}},
+ onSnapshot:fn=>{const f=()=>{const d=rd();if(d)fn({exists:true,data:()=>d})};(ls[p]=ls[p]||[]).push(f);f()}}}}:
+{doc:p=>({
+ set:d=>fetch('/api/'+p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>{if(!r.ok)throw 0}),
+ get:async()=>{const r=await fetch('/api/'+p);if(!r.ok)return{exists:false};const d=await r.json();return{exists:true,data:()=>d}},
+ onSnapshot:fn=>{const es=new EventSource('/api/'+p+'/stream');es.onmessage=e=>{const d=JSON.parse(e.data);fn({exists:true,data:()=>d})}}})};
+menu();
+function menu(){setFx(0);$('mc').innerHTML=`<h1>🏝️ Osadníci</h1>
+ <input id="nm" placeholder="Tvoje jméno" value="${myName}" maxlength="12" style="width:100%">
+ <div class="row"><select id="nn"><option value="3">3 hráči</option><option value="4" ${wantN==4?'selected':''}>4 hráči</option></select><button class="go big" onclick="create()" style="flex:1">Nová hra</button></div><hr>
+ <div class="row"><input id="cd" placeholder="KÓD" maxlength="4" style="width:6em;text-transform:uppercase;text-align:center"><button class="big" onclick="join()" style="flex:1">Připojit se</button></div>
+ ${LOCAL?'<p class="dim">🧪 Testovací režim bez serveru</p>':''}<p id="er" role="alert" style="color:#b3261e">${err}</p>`}
+const nameIn=()=>{myName=($('nm').value||'').replace(/[<>&"'`]/g,'').trim().slice(0,12);wantN=+$('nn').value};
+async function create(){
+ nameIn();code=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('');
+ G={v:1,host:me,N:wantN,phase:'lobby',P:[{uid:me,name:myName||'Hráč 1',bot:0}]};
+ try{await db.doc('games/'+code).set(G)}catch(e){err='Nepodařilo se vytvořit hru (nemáš právo zápisu?).';return menu()}
+ listen()}
+async function join(){
+ nameIn();code=$('cd').value.trim().toUpperCase();
+ try{const s=await db.doc('games/'+code).get();if(!s.exists){err='Hra s tímto kódem neexistuje.';return menu()}
+  const g=s.data();
+  if(!g.P.some(p=>p.uid==me)){if(g.phase!='lobby'||g.P.length>=g.N){err='Hra je plná nebo už začala.';return menu()}
+   g.P.push({uid:me,name:myName||'Hráč '+(g.P.length+1),bot:0});g.v++;await db.doc('games/'+code).set(g)}
+  listen()}catch(e){err='Připojení selhalo.';menu()}}
+function listen(){db.doc('games/'+code).onSnapshot(s=>{if(!s.exists)return;G=s.data();onState()})}
+function onState(){
+ if(G.phase=='lobby'){if($('myname')&&document.activeElement==$('myname'))return;$('menu').hidden=false;$('game').hidden=true;
+  $('mc').innerHTML=`<h1>Lobby</h1><div class="code">${code}</div><p class="dim" style="text-align:center">Pošli kód kamarádům</p>`+Array.from({length:G.N},(_,i)=>`<div class="pl" style="border-color:${PC[i]}">${G.P[i]?(G.P[i].uid==me?`<input id="myname" value="${G.P[i].name}" maxlength="12" onchange="rename(this.value)" aria-label="Tvoje jméno" style="flex:1;min-width:0"> ★`:G.P[i].name):'<i>🤖 doplní se bot</i>'}</div>`).join('')+(G.host==me?`<button class="go big" style="width:100%;margin-top:8px" onclick="start()">Spustit hru</button>`:'<p class="dim">Čeká se na hostitele…</p>');return}
+ $('menu').hidden=true;$('game').hidden=false;if(!H)geo();
+ sideFx();if(G.rid&&G.rid!=lastRid){lastRid=G.rid;spin(700,G.dv);setTimeout(rollSnd,850)}
+ render();botCheck()}
+function geo(){
+ H=[];V=[];E=[];const vm={},em={};let t=0;
+ for(let q=-2;q<=2;q++)for(let r=-2;r<=2;r++){if(Math.abs(q+r)>2)continue;
+  const h={...G.board[t++],x:S*Math.sqrt(3)*(q+r/2),y:S*1.5*r,vs:[]};
+  for(let k=0;k<6;k++){const a=Math.PI/180*(60*k-30),px=h.x+S*Math.cos(a),py=h.y+S*Math.sin(a),key=Math.round(px*10)+','+Math.round(py*10);
+   if(!(key in vm)){vm[key]=V.length;V.push({i:V.length,x:px,y:py,nb:[],hs:[]})}
+   const v=V[vm[key]];v.hs.push(h);h.vs.push(v)}
+  H.push(h)}
+ for(const h of H)for(let k=0;k<6;k++){const a=h.vs[k],b=h.vs[(k+1)%6];if(!a.nb.includes(b)){a.nb.push(b);b.nb.push(a)}
+  const id=Math.min(a.i,b.i)+'-'+Math.max(a.i,b.i);if(!em[id]){em[id]=1;E.push({i:E.length,a,b})}}}
+function start(){
+ while(G.P.length<G.N)G.P.push({uid:'bot'+G.P.length,name:'Hráč '+(G.P.length+1),bot:1});
+ const T=sh([...rep('wood',4),...rep('sheep',4),...rep('wheat',4),...rep('brick',3),...rep('ore',3),'desert']),nums=sh([2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12]);
+ G.board=T.map(t=>({t,n:t=='desert'?0:nums.pop()}));G.rob=T.indexOf('desert');
+ G.P.forEach(p=>Object.assign(p,{res:{wood:0,brick:0,sheep:0,wheat:0,ore:0},s:0,c:0,r:0}));
+ Object.assign(G,{season:0,round:0,vo:{},vc:{},eo:{},cur:0,phase:'setup',step:0,sub:'settle',last:-1,dv:[1,2],msg:'',log:[]});
+ geo();save()}
+function save(){G.v++;if(G.msg){(G.log=G.log||[]).push(G.msg);G.log=G.log.slice(-6);G.msg=''}render();db.doc('games/'+code).set(G).catch(()=>{$('msg').textContent='Uložení selhalo (nemáš právo zápisu?).'})}
+function canSettle(v){return vo(v)==-1&&!v.nb.some(n=>vo(n)>=0)&&(G.phase=='setup'||eOf(v).some(e=>eo(e)==G.cur))}
+function canRoad(e){if(eo(e)!=-1)return false;
+ if(G.phase=='setup')return e.a.i==G.last||e.b.i==G.last;
+ return[e.a,e.b].some(w=>vo(w)==G.cur||(vo(w)==-1&&eOf(w).some(x=>eo(x)==G.cur)))}
+function win(){if(pts(G.cur)>=10){G.phase='over';G.msg=nm(G.cur)+' vyhrál s '+pts(G.cur)+' body!'}}
+function buildS(v){const c=G.cur;G.vo[v.i]=c;cp().s++;
+ if(G.phase=='setup'){G.last=v.i;G.sub='road';if(G.step>=G.N)v.hs.forEach(h=>{if(h.t!='desert')cp().res[h.t]++});G.msg=nm(c)+' položil osadu.'}
+ else{pay(c,'settle');mode=null;G.msg=nm(c)+' postavil osadu.';G.fx={n:(G.fx?G.fx.n:0)+1,k:'s',i:v.i,o:c};win()}}
+function buildR(e){const c=G.cur;G.eo[e.i]=c;cp().r++;
+ if(G.phase=='setup'){G.step++;G.sub='settle';if(G.step==2*G.N){G.phase='roll';G.cur=0}else G.cur=ord()[G.step];G.msg=nm(c)+' položil cestu.'}
+ else{pay(c,'road');mode=null;G.msg=nm(c)+' postavil cestu.';G.fx={n:(G.fx?G.fx.n:0)+1,k:'r',i:e.i,o:c}}}
+function upCity(v){const c=G.cur;pay(c,'city');G.vc[v.i]=1;cp().s--;cp().c++;mode=null;G.msg=nm(c)+' postavil město.';G.fx={n:(G.fx?G.fx.n:0)+1,k:'c',i:v.i,o:c};win()}
+function steal(t){const pool=R.flatMap(r=>rep(r,G.P[t].res[r])),r=pool[Math.random()*pool.length|0];G.P[t].res[r]--;cp().res[r]++;G.msg=(G.msg?G.msg.replace(/\.$/,'')+' a vzal':nm(G.cur)+' vzal')+' kartu hráči '+nm(t)+'.'}
+function moveRob(i){G.rob=i;G.msg=nm(G.cur)+' přesunul zloděje.';
+ const vic=[...new Set(H[i].vs.map(vo).filter(o=>o>=0&&o!=G.cur&&cards(G.P[o])>0))];
+ if(vic.length>1){G.phase='steal';G.vic=vic}
+ else{G.phase='main';if(vic.length)steal(vic[0])}}
+function pickVic(t){if(!mine()||G.phase!='steal'||!G.vic.includes(t))return;G.phase='main';G.msg='';steal(t);G.vic=null;save()}
+function dropRandom(i,n){const p=G.P[i];for(let k=0;k<n;k++){const pool=R.flatMap(r=>rep(r,p.res[r]));p.res[pool[Math.random()*pool.length|0]]--}delete G.disc[i]}
+function afterDisc(){if(!Object.keys(G.disc).length){G.phase='robber';G.msg=''}}
+let sel={};
+const myIdx=()=>G.P.findIndex(p=>p.uid==me),selTot=()=>R.reduce((q,r)=>q+(sel[r]||0),0);
+function selAdd(r,d){const i=myIdx(),n=sel[r]||0;if(d>0&&(selTot()>=G.disc[i]||n>=G.P[i].res[r]))return;if(d<0&&n<=0)return;sel[r]=n+d;render()}
+function doDiscard(){const i=myIdx(),need=G.disc[i];if(!need||selTot()!=need)return;R.forEach(r=>G.P[i].res[r]-=sel[r]||0);delete G.disc[i];sel={};G.msg=nm(i)+' zahodil '+need+' karet.';afterDisc();save()}
+function clickV(i){if(!mine())return;const v=V[i];
+ if(G.phase=='setup'&&G.sub=='settle'&&canSettle(v))buildS(v);
+ else if(G.phase=='main'&&mode=='settle'&&canSettle(v)&&afford(G.cur,'settle'))buildS(v);
+ else if(G.phase=='main'&&mode=='city'&&vo(v)==G.cur&&!G.vc[v.i]&&afford(G.cur,'city'))upCity(v);else return;save()}
+function clickE(i){if(!mine())return;const e=E[i];
+ if((G.phase=='setup'&&G.sub=='road'&&canRoad(e))||(G.phase=='main'&&mode=='road'&&canRoad(e)&&afford(G.cur,'road')))buildR(e);else return;save()}
+function clickH(i){if(mine()&&G.phase=='robber'&&i!=G.rob){moveRob(i);save()}}
+function spin(ms,d,cb){anim=true;snd('dice');const t0=performance.now();let last=-99;
+ const iv=setInterval(()=>{const e=performance.now()-t0;
+  if(e>=ms){clearInterval(iv);anim=false;dstate={f:d,rot:[0,0],dy:[0,0]};drawDice();snd('land');cb&&cb();return}
+  if(e-last>90){last=e;dstate.f=[1+Math.random()*6|0,1+Math.random()*6|0]}
+  const k=1-e/ms;dstate.rot=[e*.8%360*k,-e*.7%360*k];dstate.dy=[-Math.abs(Math.sin(e/90))*16*k,-Math.abs(Math.sin(e/110+1))*16*k];drawDice()},30)}
+function roll(){if(rolling)return;rolling=true;
+ const d=[1,2].map(()=>1+Math.random()*6|0),s=d[0]+d[1];
+ spin(1000,d,()=>{rolling=false;G.dv=d;G.rid=lastRid=(G.rid||0)+1;
+  if(s==7){G.gain=null;G.disc={};G.P.forEach((p,i)=>{const n=cards(p);if(n>7)G.disc[i]=n>>1});
+   if(Object.keys(G.disc).length){G.phase='discard';G.msg=nm(G.cur)+' hodil 7. Kdo má víc než 7 karet, zahazuje polovinu.'}
+   else{G.phase='robber';G.msg=nm(G.cur)+' hodil 7.'}}
+  else{G.gain=G.P.map(()=>0);H.forEach((h,i)=>{if(h.n==s&&i!=G.rob)h.vs.forEach(v=>{const o=vo(v);if(o>=0){const k=adj(h.t,G.vc[v.i]?2:1);G.P[o].res[h.t]+=k;G.gain[o]+=k}})});
+   G.phase='main';G.msg=nm(G.cur)+' hodil '+s+'.'}
+  save();rollSnd()})}
+function endTurn(){G.cur=(G.cur+1)%G.N;G.phase='roll';mode=null;G.msg='';
+ if(G.cur==0){G.round++;if(G.round%2==0){G.season=(G.season+1)%4;G.msg='Nové období: '+SEAS[G.season].e+' '+SEAS[G.season].n+'!'}}save()}
+function setMode(m){mode=mode==m?null:m;render()}
+function bank(){const r=cp().res;if(tg.give==tg.get||r[tg.give]<4)return;r[tg.give]-=4;r[tg.get]++;showBank=false;G.msg=nm(G.cur)+' vyměnil 4:1 s bankou.';save()}
+function botCheck(){if(G.host!=me)return;
+ if(G.phase=='discard'){const b=Object.keys(G.disc).filter(i=>G.P[i].bot);if(b.length){b.forEach(i=>dropRandom(i,G.disc[i]));afterDisc();save()}return}
+ if(G.phase=='over'||botT||rolling||!cp().bot)return;
+ botT=setTimeout(()=>{botT=null;if(cp().bot&&G.phase!='over')botStep()},1100)}
+function botStep(){const c=G.cur,pick=a=>a[Math.random()*a.length|0],best=a=>a.sort((x,y)=>pip(y)-pip(x))[0];
+ if(G.phase=='roll')return roll();
+ if(G.phase=='setup'){if(G.sub=='settle')buildS(best(V.filter(canSettle)));else buildR(pick(E.filter(canRoad)))}
+ else if(G.phase=='robber'){const sc=i=>H[i].vs.filter(v=>vo(v)>=0&&vo(v)!=c).length-H[i].vs.filter(v=>vo(v)==c).length*2;
+  moveRob(H.map((_,i)=>i).filter(i=>i!=G.rob).sort((a,b)=>sc(b)-sc(a))[0])}
+ else if(G.phase=='steal'){const t=[...G.vic].sort((a,b)=>pts(b)-pts(a))[0];G.phase='main';G.msg='';steal(t);G.vic=null}
+ else{const ups=V.filter(v=>vo(v)==c&&!G.vc[v.i]),sp=V.filter(canSettle);
+  if(afford(c,'city')&&ups.length){mode='city';upCity(best(ups))}
+  else if(afford(c,'settle')&&sp.length)buildS(best(sp));
+  else if(afford(c,'road')&&cp().r<14&&Math.random()<.6&&E.some(canRoad))buildR(pick(E.filter(canRoad)));
+  else{const r=cp().res,g=R.find(x=>r[x]>=5);if(g){const w=R.filter(x=>x!=g).sort((a,b)=>r[a]-r[b])[0];r[g]-=4;r[w]++;G.msg=nm(c)+' vyměnil 4:1 s bankou.'}else return endTurn()}}
+ save()}
+function actx(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state=='suspended')AC.resume();return AC}
+addEventListener('pointerdown',actx);
+addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button'))snd('tick')});
+function tone(f,d,type='sine',v=.15,t0=0,f2){const c=AC;if(!c)return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}
+function noise(d,v=.2,t0=0,fq=2000){const c=AC;if(!c)return;const t=c.currentTime+t0,n=c.sampleRate*d|0,b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=fq;g.gain.value=v;s.connect(f);f.connect(g);g.connect(c.destination);s.start(t)}
+const SND={
+ dice:()=>{for(let i=0;i<9;i++)noise(.05,.25,i*.1,1500+Math.random()*2500)},
+ land:()=>{tone(140,.18,'triangle',.3,0,60);noise(.06,.3,0,900)},
+ s:()=>{[523,659,784].forEach((f,i)=>tone(f,.25,'triangle',.2,i*.08));tone(110,.25,'sine',.3,0,55)},
+ c:()=>{[392,523,659,784,1047].forEach((f,i)=>tone(f,.3,'triangle',.2,i*.07));tone(90,.35,'sine',.35,0,45)},
+ r:()=>{noise(.05,.3,0,700);noise(.05,.3,.09,900);tone(200,.12,'square',.08,.05,120)},
+ turn:()=>{tone(880,.18,'sine',.18);tone(1175,.28,'sine',.18,.14)},
+ gain:()=>{[1319,1568,2093].forEach((f,i)=>tone(f,.15,'sine',.12,i*.06))},
+ seven:()=>{tone(110,.6,'sawtooth',.18,0,70);tone(104,.6,'sawtooth',.14,.02,66)},
+ season:()=>{[523,659,784,988,1319].forEach((f,i)=>tone(f,.35,'sine',.14,i*.1))},
+ win:()=>{[523,523,523,659,784,1047].forEach((f,i)=>tone(f,.3,'square',.1,i*.14))},
+ tick:()=>tone(1000,.04,'square',.04)};
+function snd(k){if(muted)return;const c=actx();if(!c||c.state!='running')return;(SND[k]||(()=>{}))()}
+function toggleMute(){muted=!muted;try{localStorage.setItem('mute',muted?'1':'0')}catch(e){}$('mute').textContent=muted?'🔇':'🔊'}
+function banner(html,color){const b=$('banner');b.style.border='4px solid '+color;b.innerHTML=html;b.className='';void b.offsetWidth;b.className='show'}
+function sideFx(){const f=G.fx;
+ if(lastFx===null){lastFx=f?f.n:0;lastSeasonSeen=G.season||0;wasOver=G.phase=='over'}
+ if(f&&f.n!=lastFx){lastFx=f.n;fxT=performance.now();snd(f.k);
+  banner(`<span class="dot" style="background:${PC[f.o]}"></span>${nm(f.o)} postavil ${{s:'osadu',c:'město',r:'cestu'}[f.k]}!`,PC[f.o]);
+  setTimeout(()=>{fxT=0;if(G&&H)render()},1500)}
+ if((G.season||0)!=lastSeasonSeen){lastSeasonSeen=G.season||0;snd('season');const q=SEAS[lastSeasonSeen];banner(`${q.e} Nové období: ${q.n}`,'#fff')}
+ const m=mine();if(m&&!wasMine)snd('turn');wasMine=m;
+ if(G.phase=='over'&&!wasOver){wasOver=true;snd('win')}}
+function rollSnd(){const i=myIdx();if(G.phase=='discard'||G.phase=='robber')snd('seven');else if(G.gain&&i>=0&&G.gain[i]>0)snd('gain')}
+function rename(v){v=v.replace(/[<>&"'`]/g,'').trim().slice(0,12);const i=myIdx();if(i<0||!v)return;G.P[i].name=v;myName=v;G.v++;db.doc('games/'+code).set(G)}
+const DPOS=i=>{const[x,y]=SEAT[i];return[x+55,y<0?y+74+40:y-40]};
+function dieSvg(cx,cy,n,rot,dy){const pp={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]}[n]||[];
+ return`<g transform="translate(${cx},${cy+dy}) rotate(${rot})" filter="url(#sh)"><rect x="-18" y="-18" width="36" height="36" rx="8" fill="#fff" stroke="#1d2b36" stroke-width="2"/>${pp.map(([a,b])=>`<circle cx="${a*9}" cy="${b*9}" r="3.4" fill="${n==1?'#d6342c':'#1d2b36'}"/>`).join('')}</g>`}
+function drawDice(){const g=$('dg');if(!g)return;const[cx,cy]=DPOS(G.cur),can=mine()&&G.phase=='roll'&&!anim&&!rolling,D=dstate;
+ g.innerHTML=`<g ${can?'class="hot pulse" onclick="roll()" tabindex="0" role="button" aria-label="Hodit kostkami"':'pointer-events="none"'}>${[-1,1].map((q,k)=>dieSvg(cx+q*22,cy,D.f[k],D.rot[k],D.dy[k])).join('')}</g>`}
+function fxSvg(){if(!fxT||!G.fx)return'';const f=G.fx,el=((performance.now()-fxT)/1000).toFixed(2);let x,y;
+ if(f.k=='r'){const e=E[f.i];x=(e.a.x+e.b.x)/2;y=(e.a.y+e.b.y)/2}else{const v=V[f.i];x=v.x;y=v.y}
+ const c=PC[f.o];
+ return`<g transform="translate(${x},${y})" style="--d:-${el}s" pointer-events="none"><circle class="ring" r="12" stroke="${c}"/><circle class="ring r2" r="12" stroke="#fff"/>`+Array.from({length:10},(_,k)=>`<circle class="sp" r="${k%2?2.6:3.6}" fill="${k%3?'#ffd43b':c}" style="--a:${k*36}deg"/>`).join('')+`</g>`}
+const ICO={
+wood:`<rect x="-1.8" y="6" width="3.6" height="6" fill="#7a4a24" stroke="#3b2210" stroke-width=".9"/><g fill="#1f7a3a" stroke="#0d3d1a" stroke-width="1" stroke-linejoin="round"><path d="M0,-3L-10,8H10Z"/><path d="M0,-8L-8,3H8Z"/><path d="M0,-12L-6,-3H6Z"/></g><path d="M0,-12L-3,-7M0,-8L-4,-3" stroke="#7fe093" stroke-width=".9" opacity=".7"/>`,
+brick:`<g fill="#d8683c" stroke="#6b2410" stroke-width="1"><rect x="-11" y="-9" width="11" height="6"/><rect x="0" y="-9" width="11" height="6"/><rect x="-5.5" y="-3" width="11" height="6"/><rect x="-11" y="-3" width="5.5" height="6"/><rect x="5.5" y="-3" width="5.5" height="6"/><rect x="-11" y="3" width="11" height="6"/><rect x="0" y="3" width="11" height="6"/></g><path d="M-10,-8H-1M1,-8H10M-4.5,-2H4.5" stroke="#ffb08a" stroke-width=".9" opacity=".8"/>`,
+sheep:`<g stroke="#4a2c14" stroke-linecap="round" stroke-linejoin="round"><path d="M-3.5,-2L-6,-10M-5,-6.5L-9.5,-7M3.5,-2L6,-10M5,-6.5L9.5,-7M-3.5,-2L-3,-9M3.5,-2L3,-9" fill="none" stroke-width="1.6"/><ellipse cx="-6.5" cy="0" rx="3" ry="1.6" fill="#b87a45" stroke-width="1" transform="rotate(-25 -6.5 0)"/><ellipse cx="6.5" cy="0" rx="3" ry="1.6" fill="#b87a45" stroke-width="1" transform="rotate(25 6.5 0)"/><path d="M-5,-1.5Q-5.5,5-2.5,9Q0,11 2.5,9Q5.5,5 5,-1.5Q0,-4-5,-1.5Z" fill="#c98d52" stroke-width="1.1"/><circle cx="-2.2" cy="1.5" r="1" fill="#2a1608" stroke="none"/><circle cx="2.2" cy="1.5" r="1" fill="#2a1608" stroke="none"/><ellipse cx="0" cy="8" rx="2" ry="1.4" fill="#2a1608" stroke="none"/></g>`,
+wheat:`<g stroke="#8a6a12" stroke-width="1.1" stroke-linecap="round"><path d="M-6,11V-5M0,11V-8M6,11V-5" fill="none"/><g fill="#f4c93c"><ellipse cx="-6" cy="-6" rx="2" ry="3.6"/><ellipse cx="-8" cy="-1" rx="1.8" ry="3.2" transform="rotate(-25 -8 -1)"/><ellipse cx="-4" cy="-1" rx="1.8" ry="3.2" transform="rotate(25 -4 -1)"/><ellipse cx="0" cy="-9.5" rx="2" ry="3.6"/><ellipse cx="-2" cy="-4" rx="1.8" ry="3.2" transform="rotate(-25 -2 -4)"/><ellipse cx="2" cy="-4" rx="1.8" ry="3.2" transform="rotate(25 2 -4)"/><ellipse cx="6" cy="-6" rx="2" ry="3.6"/><ellipse cx="4" cy="-1" rx="1.8" ry="3.2" transform="rotate(-25 4 -1)"/><ellipse cx="8" cy="-1" rx="1.8" ry="3.2" transform="rotate(25 8 -1)"/></g></g>`,
+ore:`<path d="M-11,9L-4,-6L1,2L5,-4L11,9Z" fill="#8a94a1" stroke="#323a44" stroke-width="1.2" stroke-linejoin="round"/><path d="M-4,-6L-7.5,0L-5,-1.5L-3,.5L-1.2,-1Z" fill="#fff" stroke="#323a44" stroke-width=".7" stroke-linejoin="round"/><path d="M5,-4L2.5,0L4.5,-.5L6,1Z" fill="#fff" opacity=".9"/><path d="M-4,-6L-5,9M5,-4L6,9" stroke="#5d6772" stroke-width=".8" opacity=".6"/>`,
+desert:`<path d="M-2,1H-7V-5M2,-1H7V-6" fill="none" stroke="#1e4d26" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-2,1H-7V-5M2,-1H7V-6" fill="none" stroke="#49a355" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="-3.6" y="-11" width="7.2" height="22" rx="3.6" fill="#49a355" stroke="#1e4d26" stroke-width="1.2"/><path d="M-1,-8V8" stroke="#7fd48a" stroke-width="1" opacity=".7"/>`};
+const RE=Object.fromEntries(Object.keys(ICO).map(k=>[k,`<svg class="i" viewBox="-13 -13 26 26" aria-hidden="true">${ICO[k]}</svg>`]));
+const HEXP='250,0 125,216 -125,216 -250,0 -125,-216 125,-216';
+const DEFS=`<defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#63d3f7"/><stop offset="1" stop-color="#1b86c8"/></linearGradient>
+<radialGradient id="shine" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient>
+<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#ffd43b" flood-opacity="1"/></filter>
+<filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-opacity=".45"/></filter>
+<pattern id="pt-wood" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M3.5,11L7,3L10.5,11Z" fill="#17421f" opacity=".45"/><path d="M-3.5,4L0,-4L3.5,4ZM10.5,4L14,-4L17.5,4Z" fill="#17421f" opacity=".3"/><circle cx="12" cy="12" r=".9" fill="#a8e08a" opacity=".5"/></pattern>
+<pattern id="pt-brick" width="18" height="12" patternUnits="userSpaceOnUse"><path d="M0,.5H18M0,6.5H18M4.5,.5V6.5M13.5,6.5V12.5" stroke="#6b2410" stroke-width="1" opacity=".45" fill="none"/></pattern>
+<pattern id="pt-sheep" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M2,10L3,5L4,10M7,8L8,3L9,8" stroke="#3f7a1c" stroke-width="1.1" fill="none" opacity=".55" stroke-linecap="round"/><circle cx="10" cy="3" r="1" fill="#f6ffb0" opacity=".6"/></pattern>
+<pattern id="pt-wheat" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(25)"><path d="M0,2.5H9" stroke="#9a7410" stroke-width="1.3" opacity=".45"/><path d="M0,7H9" stroke="#fff3b0" stroke-width=".8" opacity=".5"/></pattern>
+<pattern id="pt-ore" width="20" height="14" patternUnits="userSpaceOnUse"><path d="M0,14L5,6L9,11L14,3L20,14" stroke="#3c444e" stroke-width="1" fill="none" opacity=".5"/><path d="M5,6L7,2M14,3L17,7" stroke="#e6eaee" stroke-width=".8" opacity=".5"/></pattern>
+<pattern id="pt-desert" width="18" height="9" patternUnits="userSpaceOnUse"><path d="M0,5Q4.5,1 9,5T18,5" stroke="#a88a45" stroke-width="1" fill="none" opacity=".55"/></pattern>
+<pattern id="pt-sea" width="22" height="10" patternUnits="userSpaceOnUse"><path d="M0,6Q5.5,1 11,6T22,6" stroke="#fff" stroke-width="1.1" fill="none" opacity=".35"/></pattern></defs>`;
+const SEAG=`<polygon points="${HEXP}" fill="url(#sea)" stroke="#fff" stroke-width="6" stroke-linejoin="round" filter="url(#sh)"/><polygon points="${HEXP}" fill="url(#pt-sea)"/><polygon points="${HEXP}" fill="none" stroke="#0b5a8a" stroke-opacity=".35" stroke-width="2" transform="scale(.965)"/>`;
+const star=(cx,cy,r)=>Array.from({length:10},(_,k)=>{const a=Math.PI/5*k-Math.PI/2,q=k%2?r*.45:r;return(cx+q*Math.cos(a)).toFixed(1)+','+(cy+q*Math.sin(a)).toFixed(1)}).join(' ');
+function setFx(n){if(fxSeason==n)return;fxSeason=n;document.body.className='s'+n;
+ $('fx').innerHTML=Array.from({length:16},(_,i)=>`<i style="left:${i*6+Math.random()*4|0}%;animation-duration:${8+Math.random()*8|0}s;animation-delay:-${Math.random()*14|0}s;font-size:${14+Math.random()*16|0}px">${['🌸','✨','🍂','❄️'][n]}</i>`).join('')}
+function closeM(){if(G.phase=='over'||G.phase=='discard'||G.phase=='steal')return;showCosts=showBank=false;render()}
+function fan(p,x,y,up){const list=up?R.flatMap(r=>rep(r,p.res[r])):rep(null,cards(p));let o='';
+ list.slice(0,14).forEach((r,k)=>{const cx=x+k*6.5;o+=up?`<rect x="${cx}" y="${y}" width="10" height="15" rx="2" fill="${COL[r]}" stroke="#fff" stroke-width="1"/>`:`<rect x="${cx}" y="${y}" width="10" height="15" rx="2" fill="#2a3f8f" stroke="#fff" stroke-width="1"/><rect x="${cx+2}" y="${y+2}" width="6" height="11" rx="1" fill="none" stroke="#7f95e6" stroke-width=".8"/>`});return o}
+function seats(){return G.P.map((p,i)=>{const[x,y]=SEAT[i],on=i==G.cur&&G.phase!='over',gn=G.gain&&G.gain[i],my=p.uid==me;
+ return`<g${on?' filter="url(#glow)"':''}><rect x="${x}" y="${y}" width="110" height="74" rx="14" fill="#fff" fill-opacity=".95" stroke="${PC[i]}" stroke-width="${on?5:3}"/><circle cx="${x+20}" cy="${y+22}" r="14" fill="${PC[i]}" stroke="#fff" stroke-width="2"/><text x="${x+20}" y="${y+28}" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">${p.bot?'🤖':i+1}</text><text x="${x+40}" y="${y+20}" font-size="12" font-weight="700" fill="#1d2b36">${p.name.slice(0,8)}${my?' ★':''}</text><polygon points="${star(x+45,y+33,6)}" fill="#ffc400" stroke="#a36f00" stroke-width="1" stroke-linejoin="round"/><text x="${x+54}" y="${y+37.5}" font-size="12" font-weight="700" fill="#1d2b36">${pts(i)}</text><rect x="${x+72}" y="${y+26}" width="9" height="13" rx="2" fill="#2a3f8f" stroke="#1d2b36" stroke-width="1"/><rect x="${x+74}" y="${y+28}" width="5" height="9" rx="1" fill="none" stroke="#9db0f5" stroke-width=".8"/><text x="${x+85}" y="${y+37.5}" font-size="12" font-weight="700" fill="#1d2b36">${cards(p)}</text>${fan(p,x+8,y+50,my)}${gn?`<rect x="${x+78}" y="${y-10}" width="30" height="17" rx="8" fill="#2ecc71" stroke="#fff" stroke-width="2"/><text x="${x+93}" y="${y+3}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+${gn}</text>`:''}</g>`}).join('')}
+function setTg(k,r){tg[k]=r;render()}
+function render(){
+ const m=mine(),c=G.cur,sn=SEAS[G.season||0],mi=myIdx(),my=G.P[mi];setFx(G.season||0);
+ const fxe=fxT&&G.fx?((performance.now()-fxT)/1000).toFixed(2):0,fxv=i=>fxT&&G.fx&&G.fx.k!='r'&&G.fx.i==i,fxr=i=>fxT&&G.fx&&G.fx.k=='r'&&G.fx.i==i,pa=`class="pop" style="--d:-${fxe}s"`;let g=DEFS+SEAG;
+ let gt='';H.forEach((h,i)=>{const hot=m&&G.phase=='robber'&&i!=G.rob,dn=sn.down.includes(h.t),up=sn.up.includes(h.t),P_=h.vs.map(v=>v.x.toFixed(1)+','+v.y.toFixed(1)).join(' ');
+  g+=`<polygon points="${P_}" fill="${dn?'#08080c':COL[h.t]}" stroke="#143247" stroke-opacity=".55" stroke-width="5.5" stroke-linejoin="round"/><polygon points="${P_}" fill="${dn?'none':`url(#pt-${h.t})`}" pointer-events="none"/><polygon points="${P_}" fill="${dn?'none':'url(#shine)'}" pointer-events="none"/><g transform="translate(${h.x},${h.y-12}) scale(1.35)" filter="url(#sh)" opacity="${dn?.18:1}" pointer-events="none">${ICO[h.t]}</g><polygon points="${P_}" fill="#fff" fill-opacity="0" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" ${hot?`class="hot hx" onclick="clickH(${i})" tabindex="0" role="button" aria-label="Přesunout zloděje"`:'pointer-events="none"'}/>`;
+  if(h.n){const red=h.n==6||h.n==8,np=6-Math.abs(7-h.n);
+   g+=`<g opacity="${dn?.5:1}"><circle cx="${h.x}" cy="${h.y+16}" r="14.5" fill="#fff7e0" stroke="#8a6f33" stroke-width="1.5" pointer-events="none"/><text x="${h.x}" y="${h.y+19}" text-anchor="middle" font-size="13.5" font-weight="700" fill="${red?'#c0281d':'#222'}" pointer-events="none">${h.n}</text>`+Array.from({length:np},(_,k)=>`<circle cx="${(h.x+(k-(np-1)/2)*3.4).toFixed(1)}" cy="${h.y+24.5}" r="1.1" fill="${red?'#c0281d':'#555'}" pointer-events="none"/>`).join('')+'</g>'}
+  if(h.t!='desert'&&(dn||up))gt+=`<circle cx="${h.x+19}" cy="${h.y-29}" r="9.5" fill="${dn?'#e74c3c':'#2ecc71'}" stroke="#fff" stroke-width="2"/><text x="${h.x+19}" y="${h.y-25.5}" text-anchor="middle" font-size="${dn?10:9.5}" font-weight="700" fill="#fff">${dn?'✖':'+1'}</text>`;
+  if(i==G.rob)gt+=`<g transform="translate(${h.x-19},${h.y-28}) scale(1.05)" filter="url(#sh)"><path d="M-7,9Q-7,-2 0,-5Q7,-2 7,9Z" fill="#1c1c2a" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><circle cx="0" cy="-7" r="5" fill="#1c1c2a" stroke="#fff" stroke-width="1.6"/><rect x="-3.2" y="-8.2" width="6.4" height="2.4" rx="1" fill="#ffd9a0"/></g>`});g+=gt;
+ const pS=m&&((G.phase=='setup'&&G.sub=='settle')||(G.phase=='main'&&mode=='settle'&&afford(c,'settle')));
+ const pR=m&&((G.phase=='setup'&&G.sub=='road')||(G.phase=='main'&&mode=='road'&&afford(c,'road')));
+ for(const e of E){const o=eo(e),l=`x1="${e.a.x}" y1="${e.a.y}" x2="${e.b.x}" y2="${e.b.y}" stroke-linecap="round"`;
+  if(o>=0)g+=`<line ${l} stroke="#0b2a3a" stroke-opacity=".45" stroke-width="13"/><line ${l} stroke="#fff" stroke-width="10"/><line ${l} stroke="${PC[o]}" stroke-width="6" ${fxr(e.i)?`class="draw" style="--d:-${fxe}s"`:''}/>`;
+  else if(pR&&canRoad(e))g+=`<line class="hot pulse" onclick="clickE(${e.i})" ${l} stroke="#fff" stroke-width="11" tabindex="0" role="button" aria-label="Postavit cestu"/>`}
+ for(const v of V){const o=vo(v),x=v.x,y=v.y;
+  if(o>=0)g+=G.vc[v.i]?`<g ${fxv(v.i)?pa:''} filter="url(#sh)" fill="${PC[o]}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="${x-11}" y="${y-3}" width="22" height="11"/><rect x="${x-11}" y="${y-12}" width="11" height="10"/></g>`:`<polygon ${fxv(v.i)?pa:''} filter="url(#sh)" points="${x-8},${y+7} ${x+8},${y+7} ${x+8},${y-2} ${x},${y-11} ${x-8},${y-2}" fill="${PC[o]}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>`;
+  if((pS&&canSettle(v))||(m&&G.phase=='main'&&mode=='city'&&o==c&&!G.vc[v.i]&&afford(c,'city')))g+=`<circle class="hot pulse" onclick="clickV(${v.i})" cx="${x}" cy="${y}" r="10" fill="#fff" stroke="${PC[c]}" stroke-width="3" tabindex="0" role="button" aria-label="Postavit"/>`}
+ $('b').innerHTML=g+fxSvg()+seats()+'<g id="dg"></g>';if(!anim)dstate={f:G.dv,rot:[0,0],dy:[0,0]};drawDice();
+ const hint=m?(G.phase=='setup'?(G.sub=='settle'?'Polož osadu':'Polož cestu'):G.phase=='roll'?'Hoď kostkami':G.phase=='robber'?'Přesuň zloděje':G.phase=='main'&&mode?{road:'Vyber hranu',settle:'Vyber roh',city:'Vyber osadu'}[mode]:''):'';
+ $('turn').innerHTML=`<span class="dot" style="background:${PC[c]}"></span><span>${G.phase=='over'?'🏆 '+nm(c)+' vyhrál!':G.phase=='discard'?'Zahazují: '+Object.keys(G.disc).map(nm).join(', '):m?'Jsi na tahu':nm(c)+' je právě na tahu'}</span>${hint?`<small>· ${hint}</small>`:''}`;
+ $('season').innerHTML=`<b>+1</b> ${sn.up.map(r=>RE[r]).join('')} · ✖ ${sn.down.map(r=>RE[r]).join('')}`;
+ $('sname').textContent=sn.e+' '+sn.n.toUpperCase();$('mute').textContent=muted?'🔇':'🔊';
+ $('feed').innerHTML=(G.log||[]).slice(-3).map((t,i,a)=>`<div class="toast${i==a.length-1?' new':''}">${t}</div>`).join('');
+ 
+ $('hand').innerHTML=my?(R.filter(r=>my.res[r]).map(r=>`<div class="rc" style="--c:${COL[r]}" role="img" aria-label="${CZ[r]} ${my.res[r]}"><span class="ri">${RE[r]}</span><b>×${my.res[r]}</b><small>${CZ[r]}</small></div>`).join('')||'<span class="dim">Žádné karty</span>'):'';
+ let a='';
+ if(m&&G.phase=='roll')a=`<button class="go big" onclick="roll()">🎲 Hodit kostkami</button>`;
+ else if(m&&G.phase=='main'){const b=(k,e,l)=>`<button class="ab${mode==k?' sel':''}" ${afford(c,k)?'':'disabled'} onclick="setMode('${k}')"><span>${e}</span>${l}</button>`;
+  a=b('road','🛣️','Cesta')+b('settle','🏠','Osada')+b('city','🏙️','Město')+`<button class="ab" onclick="showBank=true;render()"><span>🏦</span>Banka</button><button class="ab go" onclick="endTurn()"><span>⏭️</span>Konec tahu</button>`}
+ $('ac').innerHTML=a;
+ if(G.phase!='discard')sel={};
+ let md='';
+ if(G.phase=='over')md=`<h2>🏆 ${nm(c)} vyhrál!</h2><button class="go big" onclick="location.reload()">Zpět do menu</button>`;
+ else if(G.phase=='discard'&&mi>=0&&G.disc[mi]){const need=G.disc[mi],tot=selTot();
+  md=`<h2>Zahoď ${need} karet <span class="dim">(${tot}/${need})</span></h2>`+R.filter(r=>my.res[r]).map(r=>`<div class="drow"><span style="font-size:26px">${RE[r]}</span><span style="flex:1">${CZ[r]} <small class="dim">(máš ${my.res[r]})</small></span><button onclick="selAdd('${r}',-1)" aria-label="méně">−</button><b>${sel[r]||0}</b><button onclick="selAdd('${r}',1)" aria-label="více">+</button></div>`).join('')+`<button class="go big" style="width:100%;margin-top:8px" ${tot==need?'':'disabled'} onclick="doDiscard()">Zahodit</button>`}
+ else if(m&&G.phase=='steal')md='<h2>Komu vezmeš kartu?</h2><div class="row">'+G.vic.map(t=>`<button class="big" style="border:4px solid ${PC[t]}" onclick="pickVic(${t})">${nm(t)} · 🃏 ${cards(G.P[t])}</button>`).join('')+'</div>';
+ else if(showBank&&m&&G.phase=='main'){
+  if(my.res[tg.give]<4){const f=R.find(r=>my.res[r]>=4);if(f)tg.give=f}if(tg.get==tg.give)tg.get=R.find(r=>r!=tg.give);
+  const ok=my.res[tg.give]>=4;
+  md=`<h2>🏦 Banka</h2><div class="dim">Dáš 4×</div><div class="row">${R.map(r=>`<button class="${tg.give==r?'sel':''}" ${my.res[r]>=4?'':'disabled'} onclick="setTg('give','${r}')">${RE[r]} ${my.res[r]}</button>`).join('')}</div><div class="dim">Dostaneš 1×</div><div class="row">${R.filter(r=>r!=tg.give).map(r=>`<button class="${tg.get==r?'sel':''}" onclick="setTg('get','${r}')">${RE[r]}</button>`).join('')}</div><div class="row"><button class="go big" ${ok?'':'disabled'} onclick="bank()">Vyměnit</button><button onclick="closeM()">Zavřít</button></div>`}
+ else if(showCosts){const ch=(l)=>l.map(r=>RE[r]).join('');
+  md=`<h2>💰 Ceny</h2><table class="cost"><tr><td>🛣️ Cesta</td><td>${ch(['wood','brick'])}</td><td>0 ⭐</td></tr><tr><td>🏠 Osada</td><td>${ch(['wood','brick','sheep','wheat'])}</td><td>1 ⭐</td></tr><tr><td>🏙️ Město</td><td>${ch(['ore','ore','ore','wheat','wheat'])}</td><td>2 ⭐</td></tr><tr><td>🏦 Banka</td><td colspan="2">4× stejná → 1×</td></tr></table><h2 style="margin-top:12px">Období</h2><table class="cost">${SEAS.map(q=>`<tr><td>${q.e} ${q.n}</td><td>+1 ${q.up.map(r=>RE[r]).join('')}</td><td>✖ ${q.down.map(r=>RE[r]).join('')}</td></tr>`).join('')}</table><button class="big" onclick="closeM()">Zavřít</button>`}
+ $('modal').hidden=!md;$('modal').innerHTML=md?`<div class="mbox" onclick="event.stopPropagation()">${md}</div>`:''}
+</script></body></html>
