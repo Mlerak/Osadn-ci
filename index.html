@@ -332,4 +332,6 @@ function render(){
  else if(showCosts){const ch=(l)=>l.map(r=>RE[r]).join('');
   md=`<h2>💰 Ceny</h2><table class="cost"><tr><td>🛣️ Cesta</td><td>${ch(['wood','brick'])}</td><td>0 ⭐</td></tr><tr><td>🏠 Osada</td><td>${ch(['wood','brick','sheep','wheat'])}</td><td>1 ⭐</td></tr><tr><td>🏙️ Město</td><td>${ch(['ore','ore','ore','wheat','wheat'])}</td><td>2 ⭐</td></tr><tr><td>🏦 Banka</td><td colspan="2">4× stejná → 1×</td></tr></table><h2 style="margin-top:12px">Období</h2><table class="cost">${SEAS.map(q=>`<tr><td>${q.e} ${q.n}</td><td>+1 ${q.up.map(r=>RE[r]).join('')}</td><td>✖ ${q.down.map(r=>RE[r]).join('')}</td></tr>`).join('')}</table><button class="big" onclick="closeM()">Zavřít</button>`}
  $('modal').hidden=!md;$('modal').innerHTML=md?`<div class="mbox" onclick="event.stopPropagation()">${md}</div>`:''}
-<script src="upgrade.js"></script></body></html>
+</script>
+<script src="upgrade.js"></script>
+</body></html>
