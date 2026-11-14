@@ -1,6 +1,9 @@
 /* upgrade.js – hezčí 3D scéna, vlastní procedurální textury a zvuky.
    Načítá se po hlavním skriptu: <script src="upgrade.js"></script> těsně před </body> */
 (()=>{
+const rep=(e,w)=>{console.error('upgrade.js',w,e);const m=document.getElementById('msg');if(m)m.textContent='upgrade.js ('+w+'): '+(e&&e.message||e)};
+if(typeof THREE=='undefined'||typeof build3d!='function'){rep('chybí THREE nebo hra – zkontroluj pořadí skriptů','start');return}
+console.log('upgrade.js načten');
 const RND=Math.random,TAU=Math.PI*2,rs=s=>{s=Math.sin(s*127.1+311.7)*43758.5453;return s-Math.floor(s)};
 /* ================= TEXTURY (kreslené do canvasu) ================= */
 function mk(k){const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
@@ -50,7 +53,7 @@ const SKY=[['#9fd8ff','#e8f7ff'],['#4aa8f0','#bfe6ff'],['#e8a860','#ffe3b8'],['#
 function paintSky(q){const c=skyT.image,x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,c.height);g.addColorStop(0,SKY[q][0]);g.addColorStop(.55,SKY[q][1]);g.addColorStop(1,SKY[q][1]);x.fillStyle=g;x.fillRect(0,0,c.width,c.height);skyT.needsUpdate=true}
 const soft=(n,s)=>{const c=document.createElement('canvas');c.width=c.height=n;const x=c.getContext('2d'),g=x.createRadialGradient(n/2,n/2,n*.03,n/2,n/2,n*.48);g.addColorStop(0,s);g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,n,n);return new THREE.CanvasTexture(c)};
 const _b=build3d;
-build3d=function(){_b();init();
+build3d=function(){_b();try{init();
  ren.setPixelRatio(Math.min(devicePixelRatio||1,2));ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=1.15;sun.shadow.mapSize.set(2048,2048);hemi.intensity=.65;
  H.forEach((h,i)=>{const grp=new THREE.Group(),lst=PLAN[h.t],tot=lst.reduce((a,b)=>a+b[1],0);let j=0;grp.position.set(h.x,7,h.y);
   lst.forEach(([k,n])=>{for(let q=0;q<n;q++,j++){const sd=i*37+j*11,a=TAU*j/tot+rs(sd)*.9,rr=19+rs(sd+1)*12,g=new THREE.Group();MK[k](g,o=>rs(sd+o+2));g.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);g.rotation.y=rs(sd+3)*TAU;grp.add(g)}});
@@ -62,19 +65,19 @@ build3d=function(){_b();init();
  const N=450;pos=new Float32Array(N*3);vel=new Float32Array(N*2);for(let i=0;i<N;i++){pos[i*3]=rs(i)*700-350;pos[i*3+1]=rs(i+1)*320;pos[i*3+2]=rs(i+2)*700-350;vel[i*2]=.4+rs(i+3)*.8;vel[i*2+1]=rs(i+4)*TAU}
  const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
  part=new THREE.Points(pg,new THREE.PointsMaterial({map:soft(32,'#fff'),size:7,transparent:true,depthWrite:false,fog:false}));part.frustumCulled=false;scene.add(part);
- W2=new THREE.Mesh(new THREE.CircleGeometry(250,6),new THREE.MeshBasicMaterial({map:tex('sea',3),transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false}));W2.rotation.x=-Math.PI/2;W2.position.y=2.1;scene.add(W2)};
+ W2=new THREE.Mesh(new THREE.CircleGeometry(250,6),new THREE.MeshBasicMaterial({map:tex('sea',3),transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false}));W2.rotation.x=-Math.PI/2;W2.position.y=2.1;scene.add(W2)}catch(e){rep(e,'build3d')}};
 const _d=draw3d;
-draw3d=function(m,c){_d(m,c);const q=G.season||0,sn=SEAS[q];
- if(lastQ!=q&&skyT){lastQ=q;paintSky(q);scene.fog.color.set(SKY[q][1]);scene.fog.near=1500;scene.fog.far=3200;ren.setClearColor(SKY[q][1]);
+draw3d=function(m,c){_d(m,c);try{const q=G.season||0,sn=SEAS[q];
+ if(lastQ!=q&&skyT&&part){lastQ=q;paintSky(q);scene.fog.color.set(SKY[q][1]);scene.fog.near=1500;scene.fog.far=3200;ren.setClearColor(SKY[q][1]);
   part.material.color.set([0xffc2d8,0xfff2a0,0xe9893a,0xffffff][q]);part.material.blending=q==1?THREE.AdditiveBlending:THREE.NormalBlending;part.material.size=[7,5,9,6][q];part.material.needsUpdate=true}
- H.forEach(h=>{const d=sn.down.includes(h.t);if(h.props)h.props.visible=!d;if(d){const o=mesh(gTile,pm('#07070a',.95),h.x,3.7,h.y,dyn);o.scale.set(1.002,1.02,1.002);o.castShadow=false}})};
+ H.forEach(h=>{const d=sn.down.includes(h.t);if(h.props)h.props.visible=!d;if(d){const o=mesh(gTile,pm('#07070a',.95),h.x,3.7,h.y,dyn);o.scale.set(1.002,1.02,1.002);o.castShadow=false}})}catch(e){rep(e,'draw3d')}};
 loop=function(t){requestAnimationFrame(loop);const s=t/1000,w=cv.clientWidth,h=cv.clientHeight;
  if(w!=lw||h!=lh){lw=w;lh=h;ren.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
  HOT.opacity=.35+.3*Math.abs(Math.sin(s*3));torch.intensity=.9+.25*Math.sin(s*9)+.15*Math.sin(s*23);
- if(mWater&&mWater.map)mWater.map.offset.x=(s*.004)%1;if(W2&&W2.material.map)W2.material.map.offset.set((-s*.006)%1,(s*.003)%1);
+ try{if(mWater&&mWater.map)mWater.map.offset.x=(s*.004)%1;if(W2&&W2.material.map)W2.material.map.offset.set((-s*.006)%1,(s*.003)%1);
  if(part){const q=G&&G.season||0,a=part.geometry.attributes.position,sp=[10,5,14,22][q],dir=q==3?-1:-.5;
   for(let i=0;i<pos.length/3;i++){pos[i*3+1]+=q==1?Math.sin(s+vel[i*2+1])*.1:dir*vel[i*2]*sp*.016;pos[i*3]+=Math.sin(s*.8+vel[i*2+1])*(q==1?.07:.15);if(pos[i*3+1]<-5)pos[i*3+1]=320;if(pos[i*3+1]>330)pos[i*3+1]=0}a.needsUpdate=true}
- clouds.forEach((c,i)=>{c.position.x+=.05+i*.004;if(c.position.x>1000)c.position.x=-1000});
+ clouds.forEach((c,i)=>{c.position.x+=.05+i*.004;if(c.position.x>1000)c.position.x=-1000});}catch(e){}
  const d=cam.d*Math.max(1,1.25/camera.aspect);camera.position.set(d*Math.sin(cam.ph)*Math.sin(cam.th),d*Math.cos(cam.ph),d*Math.sin(cam.ph)*Math.cos(cam.th));camera.lookAt(0,0,0);ren.render(scene,camera)};
 
 /* ================= ZVUKY (syntéza + dozvuk) ================= */
