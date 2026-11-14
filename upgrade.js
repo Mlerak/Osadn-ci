@@ -1,9 +1,23 @@
 /* upgrade.js – hezčí 3D scéna, vlastní procedurální textury a zvuky.
    Načítá se po hlavním skriptu: <script src="upgrade.js"></script> těsně před </body> */
 (()=>{
-const rep=(e,w)=>{console.error('upgrade.js',w,e);const m=document.getElementById('msg');if(m)m.textContent='upgrade.js ('+w+'): '+(e&&e.message||e)};
-if(typeof THREE=='undefined'||typeof build3d!='function'){rep('chybí THREE nebo hra – zkontroluj pořadí skriptů','start');return}
-console.log('upgrade.js načten');
+const CFG=Object.freeze({lockFiles:true,
+ textures:Object.freeze({
+  // wood:'textures/wood.jpg', brick:'textures/brick.jpg', sheep:'textures/sheep.jpg', wheat:'textures/wheat.jpg',
+  // ore:'textures/ore.jpg', desert:'textures/desert.jpg', sea:'textures/sea.jpg', table:'textures/table.jpg'
+ }),
+ sounds:Object.freeze({
+  // roll:'sounds/roll.mp3', build:'sounds/build.mp3', card:'sounds/card.mp3', robber:'sounds/robber.mp3',
+  // turn:'sounds/turn.mp3', win:'sounds/win.mp3', music:'sounds/music.mp3'
+ })});
+for(const k in ART)delete ART[k];
+for(const k in CFG.sounds)ART['s_'+k]=CFG.sounds[k];
+Object.freeze(ART);
+try{showFiles=()=>{}}catch(e){}
+try{window.showFiles=()=>{}}catch(e){}
+const st=document.createElement('style');
+st.textContent='button[onclick*="showFiles"],input[type=file]{display:none!important}';
+document.head.appendChild(st);
 const RND=Math.random,TAU=Math.PI*2,rs=s=>{s=Math.sin(s*127.1+311.7)*43758.5453;return s-Math.floor(s)};
 /* ================= TEXTURY (kreslené do canvasu) ================= */
 function mk(k){const S=256,c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.scale(2,2);
@@ -30,7 +44,7 @@ function mk(k){const S=256,c=document.createElement('canvas');c.width=c.height=5
   for(let i=0;i<14;i++){const yy=Y+R(3,S/4-3);x.beginPath();x.moveTo(0,yy);for(let X=0;X<=S;X+=16)x.lineTo(X,yy+Math.sin(X/S*TAU*2+i)*2);x.stroke()}x.globalAlpha=1;x.fillStyle='#24140a';x.fillRect(0,Y,S,2.5)}}
  for(let i=0;i<4000;i++){x.globalAlpha=.07;x.fillStyle=RND()<.5?'#000':'#fff';x.fillRect(R(0,S),R(0,S),.9,.9)}
  x.globalAlpha=1;return c.toDataURL()}
-def=function(k){k=k.replace(/^(hex|card)_/,'');return DEFC[k]||(DEFC[k]=mk(k))};
+def=function(k){const u=CFG.textures[k]||CFG.textures[k.replace(/^(hex|card)_/,'')];if(u)return u;k=k.replace(/^(hex|card)_/,'');return DEFC[k]||(DEFC[k]=mk(k))};
 for(const k in DEFC)delete DEFC[k];
 
 /* ================= 3D: modely na dlaždicích, obloha, částice ================= */
